@@ -134,12 +134,13 @@ import checkRule from './data/rule/checkRule'
 import page from './data/page'
 import current from './data/current'
 import requireData from './data/requireData'
-import noticeData from './option/noticeData'
+import noticeData, { noticeDataType } from './option/noticeData'
 
 // 测试加载
 // import './test/index'
 // 自动引用加载
 // import './buildContentImport'
+
 
 let mainfunc = {
   current: current,
@@ -282,6 +283,7 @@ let mainfunc = {
   // notice
   setMsg: noticeData.setMsg.bind(noticeData),
   showMsg: noticeData.showMsg.bind(noticeData),
+  setModal: noticeData.setModal.bind(noticeData),
   alert: noticeData.alert.bind(noticeData),
   confirm: noticeData.confirm.bind(noticeData),
   /**
@@ -289,7 +291,7 @@ let mainfunc = {
    * @param {object} mod 对应的模块
    * @param {string[] | object[]} methodList 可能的函数数组
    */
-  _initMod: function (mod, methodList) {
+  _initMod: function (mod: any, methodList: any) {
     if (methodList) {
       for (let i in methodList) {
         let methodData = methodList[i]
@@ -361,7 +363,7 @@ let mainfunc = {
     methods, // 方法
     require, // 请求
     notice // 提示
-  }) {
+  }: any) {
     if (data) {
       for (let n in data) {
         this.data[n] = data[n]
@@ -396,8 +398,9 @@ let mainfunc = {
    * 加载notice
    * @param {*} noticeInitData
    */
-  initNotice: function(noticeInitData = {}) {
-    for (let n in noticeInitData) {
+  initNotice: function(noticeInitData: noticeDataType) {
+    let n: keyof noticeDataType
+    for (n in noticeInitData) {
       noticeData[n] = noticeInitData[n]
     }
   }

@@ -50,7 +50,7 @@ export type requireDataType = {
   api: apiType
   rule: {
     [prop: PropertyKey]: RequireRule
-  },
+  }
   status: statusType
   formatUrl?: (url: string, baseURL: string) => string
   initRequireData: (initOption: initOptionType) => void
@@ -453,7 +453,7 @@ let requireData: requireDataType = {
         title = failMsgOption.title
       }
       if (content) {
-        noticeData.showmsg(content, type, title)
+        noticeData.showMsg(content, type, title)
       }
     }
   },

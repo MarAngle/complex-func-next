@@ -2,7 +2,7 @@
   "name": "complex-func",
   "version": "3.0.0",
   "description": "a complex function",
-  "main": "index.js",
+  "main": "index.ts",
   "repository": {
     "type": "git",
     "url": "https://gitee.com/codingarea/complex-func.git"
