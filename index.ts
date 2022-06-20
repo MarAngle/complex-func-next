@@ -1,8 +1,8 @@
-import mainfunc from './src/main'
-import setData from './src/option/setData'
-import notice from './src/option/noticeData'
+import mainfunc from 'complex-func-next/src/main'
+import setData from 'complex-func-next/src/option/setData'
+import notice from 'complex-func-next/src/option/noticeData'
 
-mainfunc.install = function(Vue, options = {}) {
+mainfunc.install = function(Vue: any, options: any = {}) {
   this.init(options)
   if (options.prop === undefined) {
     options.prop = '_func'

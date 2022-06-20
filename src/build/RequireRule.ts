@@ -32,11 +32,19 @@ export type initOptionType = {
   methods?: methodsType
 }
 
+export type responseType = {
+  status: 'success' | 'fail' | 'login',
+  data?: any,
+  msg?: string,
+  code?: number | string
+}
+
 class RequireRule extends Data {
   name: string
   prop: string
   token: formatTokenType
   checkUrl!: (url: string) => boolean
+  check!: (response: any, optionData?: any) => responseType
   formatUrl!: (url: string) => string
   failMsg: undefined | ((errRes: any) => any)
   constructor ({

@@ -1,14 +1,13 @@
 import axios, { AxiosInstance } from 'axios'
-import Data from './Data'
-import config from '../../config'
-import RequireRule, { initOptionType as RequireRuleInitOptionType } from './RequireRule'
-import noticeData from './../option/noticeData'
-import { getEnv } from './../data/environment/index'
-import getType from '../data/type/getType'
-import isArray from '../data/type/isArray'
-import jsonToForm from './../data/object/jsonToForm'
-import { objectAny } from '../ts'
-
+import config from 'complex-func-next/config'
+import RequireRule, { initOptionType as RequireRuleInitOptionType, responseType } from 'complex-func-next/src/build/RequireRule'
+import exportMsg, { consoleType, exportOption } from 'complex-func-next/src/data/utils/exportMsg'
+import noticeData from 'complex-func-next/src/option/noticeData'
+import { getEnv } from 'complex-func-next/src/data/environment'
+import getType from 'complex-func-next/src/data/type/getType'
+import isArray from 'complex-func-next/src/data/type/isArray'
+import jsonToForm from 'complex-func-next/src/data/object/jsonToForm'
+import { objectAny } from 'complex-func-next/src/ts'
 
 type apiType = {
   baseURL: string,
@@ -23,43 +22,85 @@ type statusType = {
   [prop: number]: string
 }
 
+type checkType = {
+  next: boolean,
+  code: string,
+  msg: string,
+  ruleItem?: RequireRule
+}
+
+type requireErrResType = {
+  status: string,
+  code: string,
+  msg: string,
+  optionData: any,
+  error: any
+}
+
 export type initOptionType = {
   api?: apiType
   option?: objectAny
   rule: ruleType
-  status: statusType
+  status: statusType,
+  formatUrl?: (url: string, baseURL: string) => string
 }
 
-
-class Require extends Data {
-  service!: AxiosInstance
+export type requireDataType = {
+  service: AxiosInstance | null
   api: apiType
   rule: {
     [prop: PropertyKey]: RequireRule
-  }
+  },
   status: statusType
   formatUrl?: (url: string, baseURL: string) => string
-  constructor (initOption?: initOptionType) {
-    super()
-    this.api = {
-      baseURL: ''
-    }
-    this.rule = {}
-    this.status = {
-      403: '拒绝访问!',
-      404: '很抱歉，资源未找到!',
-      504: '网络超时!'
-    }
-    if (initOption) {
-      this.initMain(initOption)
-    }
-  }
-  initMain(initOption: initOptionType) {
+  initRequireData: (initOption: initOptionType) => void
+  $initApi: (api?: apiType) => void
+  $initService: (option?: objectAny) => void
+  $initRule: (rule: ruleType) => void
+  $initStatus: (status?: statusType) => void
+  $buildOption: (option?: objectAny) => objectAny
+  $buildService: (option?: objectAny) => AxiosInstance
+  $checkRule: (url: string) => RequireRule
+  $formatUrl: (url: string) => string
+  ajax: (optionData: any) => Promise<any>
+  $check: (optionData: any, defaultOptionData?: any) => checkType
+  require: (optionData: any, defaultOptionData?: any) => Promise<responseType>
+  $requireNext: (optionData: any, check: checkType) => Promise<responseType>
+  requireFail: (error: any, optionData: any, ruleItem: RequireRule) => requireErrResType
+  parseStatus: (status: number) => string
+  $showFailMsg: (checkFail: boolean, failMsgOption: any, content?: any, type?: any, title?: any) => void
+  get: (optionData: any) => Promise<responseType>
+  post: (optionData: any) => Promise<responseType>
+  delete: (optionData: any) => Promise<responseType>
+  put: (optionData: any) => Promise<responseType>
+  postForm: (optionData: any) => Promise<responseType>
+  postFile: (optionData: any) => Promise<responseType>
+  setToken: (tokenName: string, data: any, prop?: string) => void
+  getToken: (tokenName: string, prop?: string) => any
+  removeToken: (tokenName: string, prop?: string) => boolean
+  deleteToken: (tokenName: string, prop?: string) => boolean
+  $selfName: () => string
+  $createMsg: (content: string) => string
+  $exportMsg: (content: string, type?: consoleType, option?: exportOption) => void
+}
+
+let requireData: requireDataType = {
+  service: null,
+  api: {
+    baseURL: ''
+  },
+  rule: {},
+  status: {
+    403: '拒绝访问!',
+    404: '很抱歉，资源未找到!',
+    504: '网络超时!'
+  },
+  initRequireData (initOption) {
     this.$initApi(initOption.api)
     this.$initService(initOption.option)
     this.$initRule(initOption.rule)
     this.$initStatus(initOption.status)
-  }
+  },
   /**
    * 加载api
    * @param {object} api
@@ -69,7 +110,7 @@ class Require extends Data {
     if (api && api.baseURL) {
       this.api.baseURL = api.baseURL
     }
-  }
+  },
   /**
    * 创建option
    * @param {object} option
@@ -83,7 +124,7 @@ class Require extends Data {
       option.headers['Content-Type'] = 'text/plain;charset=UTF-8'
     }
     return option
-  }
+  },
   /**
    * 构建service
    * @param {*} option
@@ -91,14 +132,14 @@ class Require extends Data {
    */
   $buildService(option?: objectAny) {
     return axios.create(this.$buildOption(option))
-  }
+  },
   /**
    * 创建service
    * @param {*} option
    */
   $initService (option?: objectAny) {
     this.service = this.$buildService(option)
-  }
+  },
   /**
    * 加载规则
    * @param {object} rule
@@ -119,7 +160,7 @@ class Require extends Data {
     if (getEnv('real') == 'development' && config.Require.devShowRule) {
       this.$exportMsg(`默认的请求规则处理程序为[${this.rule.default.$selfName()}]`, 'log')
     }
-  }
+  },
   /**
    * 加载状态翻译值
    * @param {object} status
@@ -128,7 +169,7 @@ class Require extends Data {
     for (let n in status) {
       this.status[n] = status[n]
     }
-  }
+  },
   /**
    * 检查获取当前url对应的rule
    * @param {string} url
@@ -142,7 +183,7 @@ class Require extends Data {
       }
     }
     return this.rule.default
-  }
+  },
   /**
    * 格式化URL
    * @param {string} url
@@ -158,7 +199,7 @@ class Require extends Data {
       }
       return url
     }
-  }
+  },
   /**
    * 调用service进行axios请求
    * @param {*} optionData
@@ -166,13 +207,13 @@ class Require extends Data {
    */
   ajax (optionData = {}) {
     return new Promise((resolve, reject) => {
-      this.service(optionData).then(response => {
+      this.service!(optionData).then(response => {
         resolve(response)
       }).catch(error => {
         reject(error)
       })
     })
-  }
+  },
   /**
    * 传参检查和格式化
    * @param {object} optionData 参数
@@ -190,7 +231,7 @@ class Require extends Data {
    * @returns {check}
    */
   $check (optionData, defaultOptionData = {}) {
-    let check = {
+    let check: checkType = {
       next: true,
       code: '',
       msg: ''
@@ -254,7 +295,7 @@ class Require extends Data {
       }
     }
     return check
-  }
+  },
   /**
    * 请求主函数
    * @param {object} optionData 参数
@@ -297,7 +338,7 @@ class Require extends Data {
       this.$showFailMsg(true, optionData.failMsg, check.msg, 'error')
       return Promise.reject({ status: 'fail', ...check })
     }
-  }
+  },
   /**
    * 请求下一步操作
    */
@@ -305,7 +346,7 @@ class Require extends Data {
     return new Promise((resolve, reject) => {
       this.ajax(optionData).then(response => {
         if (optionData.responseFormat && optionData.responseType == 'json') {
-          let nextdata = check.ruleItem.check(response, optionData)
+          let nextdata = check.ruleItem!.check(response, optionData)
           if (nextdata.status == 'success') {
             resolve(nextdata)
           } else if (nextdata.status == 'login') {
@@ -330,12 +371,12 @@ class Require extends Data {
         }
       }, error => {
         console.error(error)
-        let errRes = this.requireFail(error, optionData, check.ruleItem)
+        let errRes = this.requireFail(error, optionData, check.ruleItem!)
         this.$showFailMsg(true, optionData.failMsg, errRes.msg, 'error', '警告')
         reject(errRes)
       })
     })
-  }
+  },
   /**
    * 请求失败回调
    * @param {*} error
@@ -344,8 +385,10 @@ class Require extends Data {
    * @returns
    */
   requireFail (error, optionData, ruleItem) {
-    let errRes = {
+    let errRes: requireErrResType = {
       status: 'fail',
+      code: '',
+      msg: '',
       optionData: optionData,
       error: error
     }
@@ -366,7 +409,7 @@ class Require extends Data {
       errRes.msg = config.Require.failMsg
     }
     return errRes
-  }
+  },
   /**
    * 获取status翻译值
    * @param {number} status
@@ -378,7 +421,7 @@ class Require extends Data {
     } else {
       return ''
     }
-  }
+  },
   /**
    * 自动显示失败msg
    * @param {boolean} checkFail 检查失败时的回调
@@ -413,7 +456,7 @@ class Require extends Data {
         noticeData.showmsg(content, type, title)
       }
     }
-  }
+  },
   /**
    * get请求
    * @param {object} optionData 参数
@@ -431,7 +474,7 @@ class Require extends Data {
    */
   get (optionData) {
     return this.require(optionData, { method: 'get' })
-  }
+  },
   /**
    * post请求
    * @param {object} optionData 参数
@@ -449,7 +492,7 @@ class Require extends Data {
    */
   post (optionData) {
     return this.require(optionData, { method: 'post' })
-  }
+  },
   /**
    * delete请求
    * @param {object} optionData 参数
@@ -467,7 +510,7 @@ class Require extends Data {
    */
   delete (optionData) {
     return this.require(optionData, { method: 'delete' })
-  }
+  },
   /**
    * put请求
    * @param {object} optionData 参数
@@ -485,7 +528,7 @@ class Require extends Data {
    */
   put (optionData) {
     return this.require(optionData, { method: 'put' })
-  }
+  },
   /**
    * post请求form类型,requestDataType默认为formdata
    * @param {object} optionData 参数
@@ -501,9 +544,9 @@ class Require extends Data {
    * @param {boolean} optionData.responseFormat 是否对返回数据进行分析和格式化,默认为true
    * @returns {Promise}
    */
-  postform (optionData) {
+  postForm (optionData) {
     return this.require(optionData, { method: 'post', requestDataType: 'formdata' })
-  }
+  },
   /**
    * post请求formfile类型,requestDataType/requestCurrentDataType默认为formdata
    * @param {object} optionData 参数
@@ -519,9 +562,9 @@ class Require extends Data {
    * @param {boolean} optionData.responseFormat 是否对返回数据进行分析和格式化,默认为true
    * @returns {Promise}
    */
-  postfile (optionData) {
+  postFile (optionData) {
     return this.require(optionData, { method: 'post', requestDataType: 'formdata', requestCurrentDataType: 'formdata' })
-  }
+  },
   /**
    * 设置token
    * @param {string} tokenName token名称
@@ -534,7 +577,7 @@ class Require extends Data {
     } else {
       this.$exportMsg(`未找到[${tokenName}:${prop}]对应的规则处理程序！`)
     }
-  }
+  },
   /**
    * 获取指定token的值
    * @param {string} tokenName token名称
@@ -547,7 +590,7 @@ class Require extends Data {
       this.$exportMsg(`未找到[${tokenName}:${prop}]对应的规则处理程序！`)
       return false
     }
-  }
+  },
   /**
    * 清除token
    * @param {string} tokenName token名称
@@ -561,7 +604,7 @@ class Require extends Data {
       this.$exportMsg(`未找到[${tokenName}:${prop}]对应的规则处理程序！`)
       return false
     }
-  }
+  },
   /**
    * 删除token
    * @param {string} tokenName token名称
@@ -575,16 +618,32 @@ class Require extends Data {
       this.$exportMsg(`未找到[${tokenName}:${prop}]对应的规则处理程序！`)
       return false
     }
-  }
+  },
   $selfName () {
     let ruleName = []
     for (let n in this.rule) {
       ruleName.push(this.rule[n].$selfName())
     }
     return `(${super.$selfName()}:[${ruleName.join(',')}])`
+  },
+  /**
+   * 创建输出信息
+   * @param {string} content 需要输出的信息
+   * @returns {string}
+   */
+  $createMsg (content) {
+    return `${this.$selfName()}:${content}`
+  },
+  /**
+   * 信息输出
+   * @param {string} content 信息
+   * @param {string} type 类型
+   * @param {object} [option] 额外信息
+   */
+  $exportMsg(content, type = 'error', option) {
+    exportMsg(this.$createMsg(content), type, option)
   }
 }
 
-Require.$name = 'Require'
 
-export default Require
+export default requireData

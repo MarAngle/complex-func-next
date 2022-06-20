@@ -133,8 +133,8 @@ import checkRule from './data/rule/checkRule'
 // rule加载完成
 import page from './data/page'
 import current from './data/current'
-import Require from './build/Require'
-import notice from './option/noticeData'
+import requireData from './data/requireData'
+import noticeData from './option/noticeData'
 
 // 测试加载
 // import './test/index'
@@ -142,7 +142,6 @@ import notice from './option/noticeData'
 // import './buildContentImport'
 
 let mainfunc = {
-  requiredata: new Require(),
   current: current,
   page: page,
   data: {},
@@ -267,42 +266,24 @@ let mainfunc = {
   buildRule,
   checkRule,
   // require
-  ajax: function(optionData) {
-    return this.requiredata.ajax(optionData)
-  },
-  require: function(optionData, defaultOptionData) {
-    return this.requiredata.require(optionData, defaultOptionData)
-  },
-  get: function(optionData) {
-    return this.requiredata.get(optionData)
-  },
-  post: function(optionData) {
-    return this.requiredata.post(optionData)
-  },
-  delete: function(optionData) {
-    return this.requiredata.delete(optionData)
-  },
-  put: function(optionData) {
-    return this.requiredata.put(optionData)
-  },
-  postform: function(optionData) {
-    return this.requiredata.postform(optionData)
-  },
-  postfile: function(optionData) {
-    return this.requiredata.postfile(optionData)
-  },
-  setToken: function(tokenName: string, data: any, prop?: string) {
-    return this.requiredata.setToken(tokenName, data, prop)
-  },
-  getToken: function(tokenName: string, prop?: string) {
-    return this.requiredata.getToken(tokenName, prop)
-  },
-  removeToken: function(tokenName: string, prop?: string) {
-    return this.requiredata.removeToken(tokenName, prop)
-  },
-  deleteToken: function(tokenName: string, prop?: string) {
-    return this.requiredata.deleteToken(tokenName, prop)
-  },
+  ajax: requireData.ajax.bind(requireData),
+  require: requireData.require.bind(requireData),
+  get: requireData.get.bind(requireData),
+  post: requireData.post.bind(requireData),
+  delete: requireData.delete.bind(requireData),
+  put: requireData.put.bind(requireData),
+  postForm: requireData.postForm.bind(requireData),
+  postFile: requireData.postFile.bind(requireData),
+  setToken: requireData.setToken.bind(requireData),
+  getToken: requireData.getToken.bind(requireData),
+  removeToken: requireData.removeToken.bind(requireData),
+  deleteToken: requireData.deleteToken.bind(requireData),
+
+  // notice
+  setMsg: noticeData.setMsg.bind(noticeData),
+  showMsg: noticeData.showMsg.bind(noticeData),
+  alert: noticeData.alert.bind(noticeData),
+  confirm: noticeData.confirm.bind(noticeData),
   /**
    * 加载模块
    * @param {object} mod 对应的模块
@@ -318,12 +299,12 @@ let mainfunc = {
             prop: methodData
           }
         }
-        this._appendMethod(methodData.prop, mod[methodData.originprop], mod)
+        this.$appendMethod(methodData.prop, mod[methodData.originprop], mod)
       }
     } else {
       for (let n in mod) {
         if (typeof mod[n] == 'function') {
-          this._appendMethod(n, mod[n], mod)
+          this.$appendMethod(n, mod[n], mod)
         }
       }
     }
@@ -334,7 +315,7 @@ let mainfunc = {
    * @param {Function} methodData 函数体
    * @param {object} [target] this
    */
-  _appendMethod: function (methodName, methodData, target) {
+  $appendMethod: function (methodName: string, methodData: any, target?: any) {
     let append = false
     if (methodData) {
       let methodType = typeof methodData
@@ -401,33 +382,24 @@ let mainfunc = {
     }
     if (methods) {
       for (let n in methods) {
-        this._appendMethod(n, methods[n])
+        this.$appendMethod(n, methods[n])
       }
     }
     if (require) {
-      this.initRequire(require)
+      requireData.initRequireData(require)
     }
     if (notice) {
       this.initNotice(notice)
     }
   },
   /**
-   * 加载require
-   * @param {*} requireInitData
-   */
-  initRequire: function (requireInitData) {
-    this.requiredata.initMain(requireInitData)
-  },
-  /**
    * 加载notice
    * @param {*} noticeInitData
    */
   initNotice: function(noticeInitData = {}) {
-    notice.data = noticeInitData.data || {}
-    for (let n in noticeInitData.methods) {
-      notice[n] = noticeInitData.methods[n]
+    for (let n in noticeInitData) {
+      noticeData[n] = noticeInitData[n]
     }
-    mainfunc._initMod(notice)
   }
 }
 
